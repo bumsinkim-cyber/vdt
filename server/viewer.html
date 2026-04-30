@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VDT Report</title>
+  <style>
+    :root {
+      --bg: #0d1117; --bg-panel: #161b22; --bg-card: #1c2128;
+      --border: #30363d; --text: #e6edf3; --text-muted: #7d8590;
+      --accent: #4f6ef7;
+      --green: #3fb950; --green-bg: rgba(63,185,80,.12);
+      --orange: #d29922; --orange-bg: rgba(210,153,34,.12);
+      --red: #f85149; --red-bg: rgba(248,81,73,.12);
+      --blue: #58a6ff; --blue-bg: rgba(88,166,255,.12);
+      --gray: #7d8590; --gray-bg: rgba(125,133,144,.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system,'Pretendard',sans-serif; font-size:13px; line-height:1.6; overflow:hidden; }
+
+    /* ── Header ── */
+    .header { background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 12px 20px; }
+    .header-row { display:flex; justify-content:space-between; align-items:center; }
+    .header-left { display:flex; align-items:center; gap:10px; }
+    .team-badge { font-size:11px; background: rgba(79,110,247,.2); color: var(--accent); padding: 2px 8px; border-radius:10px; font-weight:600; }
+    .header-title { font-size:14px; font-weight:700; }
+    .header-ticket { font-size:11px; color: var(--text-muted); margin-top:2px; }
+    .status-badge { font-size:11px; color: var(--orange); background: var(--orange-bg); padding: 3px 10px; border-radius:10px; }
+
+    /* ── Stats bar ── */
+    .stats-bar { display:flex; gap:20px; padding: 8px 20px; background: var(--bg-panel); border-bottom: 1px solid var(--border); }
+    .stat { display:flex; align-items:center; gap:5px; font-size:12px; cursor:default; }
+    .stat-num { font-weight:700; font-size:13px; }
+
+    /* ── Tabs ── */
+    .tabs { display:flex; background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 0 20px; }
+    .tab { padding: 9px 14px; font-size:12px; cursor:pointer; color: var(--text-muted); border-bottom: 2px solid transparent; transition: color .15s; user-select:none; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Layout ── */
+    .content { display:flex; height: calc(100vh - 105px); }
+    .tab-panel { display:none; width:100%; }
+    .tab-panel.active { display:flex; }
+
+    /* ── Left panel ── */
+    .left-panel { width:36%; overflow-y:auto; border-right:1px solid var(--border); padding:18px; flex-shrink:0; }
+    .spec-title { font-size:16px; font-weight:700; margin-bottom:16px; line-height:1.4; }
+    .section { margin-bottom:18px; }
+    .section-label { font-size:10px; font-weight:700; color: var(--text-muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px; }
+
+    /* Feature table */
+    .feat-table { width:100%; border-collapse:collapse; }
+    .feat-table td { padding:5px 8px; border:1px solid var(--border); font-size:12px; }
+    .feat-table td:first-child { color: var(--text-muted); width:32%; background: var(--bg-card); white-space:nowrap; }
+
+    /* Subtask table */
+    .sub-table { width:100%; border-collapse:collapse; }
+    .sub-table th { font-size:11px; text-align:left; padding:5px 8px; background: var(--bg-card); border:1px solid var(--border); color: var(--text-muted); }
+    .sub-table td { padding:5px 8px; border:1px solid var(--border); font-size:12px; }
+    .st-done { color: var(--green); } .st-wip { color: var(--blue); } .st-todo { color: var(--gray); }
+
+    /* Warning */
+    .warn-card { background: rgba(210,153,34,.07); border-left:3px solid var(--orange); padding:8px 10px; margin-bottom:6px; border-radius:0 4px 4px 0; }
+    .warn-author { font-size:11px; color: var(--orange); margin-bottom:3px; }
+    .warn-text { font-size:12px; }
+
+    /* Bullet */
+    .bul { list-style:none; }
+    .bul li { padding:3px 0 3px 14px; font-size:12px; position:relative; }
+    .bul li::before { content:'•'; position:absolute; left:0; color: var(--text-muted); }
+
+    /* ── Right panel ── */
+    .right-panel { flex:1; overflow-y:auto; padding:18px; }
+    .panel-title { font-size:13px; font-weight:600; margin-bottom:12px; }
+
+    /* AC Table */
+    .ac-table { width:100%; border-collapse:collapse; }
+    .ac-table th { font-size:11px; text-align:left; padding:7px 9px; background: var(--bg-card); border:1px solid var(--border); color: var(--text-muted); position:sticky; top:0; z-index:1; }
+    .ac-table td { padding:7px 9px; border:1px solid var(--border); font-size:12px; vertical-align:top; }
+    .ac-table tr:hover td { background: rgba(255,255,255,.018); }
+    .ac-id { font-family:monospace; font-size:11px; color: var(--text-muted); white-space:nowrap; }
+
+    /* Verdict badges */
+    .vb { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; font-weight:600; white-space:nowrap; }
+    .vb-ok   { background: var(--green-bg);  color: var(--green);  }
+    .vb-warn { background: var(--orange-bg); color: var(--orange); }
+    .vb-unk  { background: var(--gray-bg);   color: var(--gray);   }
+    .vb-add  { background: var(--blue-bg);   color: var(--blue);   }
+    .vb-risk { background: var(--red-bg);    color: var(--red);    }
+
+    /* Right panel sections */
+    .right-section { margin-bottom: 20px; }
+    .right-section-title { font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:10px; }
+    .rec-list { padding-left:0; list-style:none; margin:0; display:flex; flex-direction:column; gap:6px; }
+    .rec-list li { display:flex; align-items:flex-start; gap:8px; font-size:12px; color:var(--text-muted); line-height:1.5; }
+    .rec-num { flex-shrink:0; width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+    .rec-risk-row { display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; }
+    .rec-risk-row:last-child { border-bottom:none; }
+
+    /* Dev panel */
+    .dev-section { margin-bottom:28px; }
+    .dev-section-title { font-size:14px; font-weight:700; color: var(--accent); margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+
+    /* Impact scope table */
+    .impact-table { width:100%; border-collapse:collapse; }
+    .impact-table th { font-size:11px; text-align:left; padding:7px 10px; background: var(--bg-card); border:1px solid var(--border); color: var(--text-muted); }
+    .impact-table td { padding:7px 10px; border:1px solid var(--border); font-size:12px; vertical-align:top; }
+    .impact-table tr:hover td { background: rgba(255,255,255,.018); }
+    .ct-new  { color: var(--blue); }
+    .ct-mod  { color: var(--text-muted); }
+    .ct-cmod { color: var(--orange); }
+    .ct-done { color: var(--green); }
+    .ct-del  { color: var(--red); }
+    .ct-risky::before { content:'⚠️ '; }
+
+    /* Impl risk table */
+    .impl-table { width:100%; border-collapse:collapse; }
+    .impl-table th { font-size:11px; text-align:left; padding:7px 10px; background: var(--bg-card); border:1px solid var(--border); color: var(--text-muted); }
+    .impl-table td { padding:7px 10px; border:1px solid var(--border); font-size:12px; vertical-align:top; }
+    .impl-table tr:hover td { background: rgba(255,255,255,.018); }
+    .cx-high { color: var(--red); font-weight:600; }
+    .cx-med  { color: var(--orange); font-weight:600; }
+    .cx-low  { color: var(--green); font-weight:600; }
+
+    /* Impl order list */
+    .impl-order { list-style:none; counter-reset:order; }
+    .impl-order li { counter-increment:order; padding:6px 0 6px 28px; font-size:12px; position:relative; border-bottom:1px solid rgba(48,54,61,.6); }
+    .impl-order li:last-child { border-bottom:none; }
+    .impl-order li::before { content:counter(order); position:absolute; left:0; top:7px; width:18px; height:18px; background: var(--accent); color:#fff; border-radius:50%; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; line-height:1; text-align:center; }
+
+    /* Tech notes */
+    .tech-notes { list-style:none; }
+    .tech-notes li { padding:5px 0 5px 16px; font-size:12px; color: var(--text-muted); position:relative; border-bottom:1px solid rgba(48,54,61,.4); }
+    .tech-notes li:last-child { border-bottom:none; }
+    .tech-notes li::before { content:'•'; position:absolute; left:0; color: var(--accent); font-size:14px; line-height:1.4; }
+
+    /* ── Meeting ── */
+    .meeting-meta { font-size:12px; color: var(--text-muted); margin-bottom:24px; }
+    .meeting-sys {
+      font-size:11px; font-weight:700; color: var(--text-muted);
+      letter-spacing:.6px; padding:10px 0 8px;
+      border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+      margin: 20px 0 16px;
+    }
+    .meeting-sys:first-of-type { margin-top:0; border-top:none; }
+    .meeting-block { margin-bottom:22px; }
+    .meeting-agent { font-size:14px; font-weight:700; margin-bottom:8px; }
+    .meeting-content { font-size:13px; line-height:1.8; color: var(--text-muted); }
+    .meeting-content strong { color: var(--text); }
+    .consensus-list { list-style:none; margin-top:4px; }
+    .consensus-list li {
+      display:flex; align-items:flex-start; gap:10px;
+      padding:8px 0; font-size:13px; line-height:1.6;
+      border-bottom:1px solid rgba(48,54,61,.5);
+    }
+    .consensus-list li:last-child { border-bottom:none; }
+    .cprio { font-size:11px; font-weight:700; padding:2px 7px; border-radius:6px; white-space:nowrap; margin-top:2px; flex-shrink:0; }
+    .cp0 { background: var(--red-bg);    color: var(--red); }
+    .cp1 { background: var(--orange-bg); color: var(--orange); }
+    .cp2 { background: var(--green-bg);  color: var(--green); }
+
+    /* Meeting placeholder */
+    .empty-panel { width:100%; display:flex; align-items:center; justify-content:center; color: var(--text-muted); font-size:13px; }
+
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius:3px; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+window.__VDT__ = __DATA_PLACEHOLDER__;
+const D = window.__VDT__;
+
+const VERDICT = {
+  '✅': { cls:'vb-ok',   label:'착수가능', stat:'착수가능' },
+  '⚠️': { cls:'vb-warn', label:'확인필요', stat:'확인필요' },
+  '🔴': { cls:'vb-risk', label:'착수불가', stat:'착수불가' },
+};
+
+function vbadge(v) {
+  const m = VERDICT[v] || VERDICT['?'];
+  return `<span class="vb ${m.cls}">${v} ${m.label}</span>`;
+}
+
+function stBadge(s) {
+  if (s === 'Done')        return `<span class="st-done">✅ Done</span>`;
+  if (s === 'IN PROGRESS') return `<span class="st-wip">⏳ IN PROGRESS</span>`;
+  return `<span class="st-todo">○ ${s||'TODO'}</span>`;
+}
+
+function renderHeader() {
+  return `
+    <div class="header">
+      <div class="header-row">
+        <div class="header-left">
+          <span class="team-badge">🤖 가상 개발팀</span>
+          <div>
+            <div class="header-title">${D.title} — 기획서 품질 분석</div>
+            <div class="header-ticket">${D.ticket_key}</div>
+          </div>
+        </div>
+        <span class="status-badge">⏳ Director 승인 대기 — ${D.analysis_date} 분석 완료</span>
+      </div>
+    </div>`;
+}
+
+function renderStats() {
+  const s = D.stats || {};
+  const items = [
+    { v:'✅', key:'착수가능', cls:'green'  },
+    { v:'⚠️', key:'확인필요', cls:'orange' },
+    { v:'🔴', key:'착수불가', cls:'red'    },
+  ];
+  return `<div class="stats-bar">${
+    items.map(i => `
+      <div class="stat">
+        <span style="color:var(--${i.cls})">${i.v}</span>
+        <span class="stat-num" style="color:var(--${i.cls})">${s[i.key]||0}</span>
+        <span style="color:var(--text-muted)">${i.key}</span>
+      </div>`).join('')
+  }</div>`;
+}
+
+function renderTabs() {
+  return `<div class="tabs">
+    <div class="tab active" onclick="switchTab('spec',this)">📋 기획서</div>
+    <div class="tab" onclick="switchTab('dev',this)">🛠 개발 리스크</div>
+    <div class="tab" onclick="switchTab('meeting',this)">💬 회의록</div>
+  </div>`;
+}
+
+function renderSpecLeft() {
+  const sp = D.spec || {};
+  let html = `<div class="spec-title">기획서 요약: ${D.title}</div>`;
+
+  if (sp.purpose) html += `
+    <div class="section">
+      <div class="section-label">목적 &amp; 배경</div>
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.7">${sp.purpose}</p>
+    </div>`;
+
+  if ((sp.key_features||[]).length) html += `
+    <div class="section">
+      <div class="section-label">주요 기능</div>
+      <table class="feat-table"><tbody>${
+        sp.key_features.map(f=>`<tr><td>${f.component}</td><td>${f.content}</td></tr>`).join('')
+      }</tbody></table>
+    </div>`;
+
+  if ((sp.subtasks||[]).length) html += `
+    <div class="section">
+      <div class="section-label">서브태스크 현황</div>
+      <table class="sub-table">
+        <thead><tr><th>서브태스크</th><th>담당</th><th>상태</th></tr></thead>
+        <tbody>${sp.subtasks.map(t=>`<tr><td>${t.key}</td><td>${t.owner}</td><td>${stBadge(t.status)}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+
+  if ((sp.incomplete_areas||[]).length) html += `
+    <div class="section">
+      <div class="section-label">⚠️ 미완성 영역</div>
+      ${sp.incomplete_areas.map(a => {
+        const author = typeof a === 'object' ? a.author : '';
+        const text   = typeof a === 'object' ? a.comment : a;
+        return `<div class="warn-card">${author?`<div class="warn-author">${author} 코멘트</div>`:''}<div class="warn-text">${text}</div></div>`;
+      }).join('')}
+    </div>`;
+
+  if ((sp.ui_ux_changes||[]).length) html += `
+    <div class="section">
+      <div class="section-label">UI/UX 변경사항</div>
+      <ul class="bul">${sp.ui_ux_changes.map(u=>`<li>${typeof u==='object'?(u.content||u.description||u.change||JSON.stringify(u)):u}</li>`).join('')}</ul>
+    </div>`;
+
+  if ((sp.edge_cases||[]).length) html += `
+    <div class="section">
+      <div class="section-label">예외/엣지케이스 (기획서 명시분)</div>
+      <ul class="bul">${sp.edge_cases.map(e=>`<li>${typeof e==='object'?(e.content||e.description||e.case||JSON.stringify(e)):e}</li>`).join('')}</ul>
+    </div>`;
+
+  return html;
+}
+
+function renderQaPredictions() {
+  const items = (D.ac_items || []).filter(ac => ac.qa_prediction && ac.verdict !== '✅');
+  if (!items.length) return '';
+  const rows = items.map(ac => {
+    const isCritical = ac.verdict === '🔴';
+    return `
+      <tr>
+        <td style="width:52px;font-weight:700;font-size:11px;vertical-align:top;padding-top:9px">${ac.id}</td>
+        <td style="width:80px;vertical-align:top;padding-top:7px">${vbadge(ac.verdict||'⚠️')}</td>
+        <td style="font-size:11px;color:var(--text-muted);vertical-align:top">${ac.content||''}</td>
+        <td style="font-size:11px;vertical-align:top;color:${isCritical ? 'var(--red)' : '#e8a84a'};font-style:italic;line-height:1.5">${ac.qa_prediction}</td>
+      </tr>`;
+  }).join('');
+  return `
+    <div class="right-section" style="margin-top:20px">
+      <div class="right-section-title">🔮 테스트 예측 리스크
+        <span style="color:var(--text-muted);font-weight:400;font-size:11px"> (⚠️/🔴 항목 ${items.length}건)</span>
+      </div>
+      <table class="ac-table" style="margin-top:8px">
+        <thead><tr>
+          <th style="width:52px">AC#</th>
+          <th style="width:80px">판정</th>
+          <th>기획 항목</th>
+          <th style="width:40%">예측 이슈</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderCriticalQuestions() {
+  const cqs = D.critical_questions || [];
+  if (!cqs.length) return '';
+  const p0 = cqs.filter(q => q.priority === 'P0');
+  const p1 = cqs.filter(q => q.priority === 'P1');
+  const rows = [...p0, ...p1].map(q => `
+    <tr>
+      <td><span class="vb ${q.priority==='P0'?'vb-risk':'vb-warn'}">${q.priority}</span></td>
+      <td style="color:var(--text-muted);font-size:11px">${(q.related_ids||[]).join(', ')}</td>
+      <td style="font-weight:500">${q.question}</td>
+      <td style="color:var(--text-muted);font-size:12px">${q.impact||'—'}</td>
+    </tr>`).join('');
+  return `
+    <div class="right-section" style="margin-top:20px">
+      <div class="right-section-title">❓ Critical Questions <span style="color:var(--text-muted);font-weight:400">(개발 착수 전 기획자 확인 필요)</span></div>
+      <table class="ac-table" style="margin-top:8px">
+        <thead><tr>
+          <th style="width:50px">우선순위</th>
+          <th style="width:80px">관련 AC</th>
+          <th>질문</th>
+          <th style="width:28%">미해결 시 영향</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderRightPanel() {
+  const items   = D.ac_items || [];
+  const dev     = D.developer || {};
+  const order   = dev.impl_order || [];
+  const risks   = dev.impl_risks || [];
+
+  // ── 통계 실시간 재계산 (stats 바와 일치 보장) ──
+  const realStats = {'착수가능':0,'확인필요':0,'착수불가':0};
+  const lmap = {'✅':'착수가능','⚠️':'확인필요','🔴':'착수불가'};
+  items.forEach(ac => { const k = lmap[ac.verdict||'⚠️']; if(k) realStats[k]++; });
+  const total = items.length;
+
+  // ── AC 판정 통계 배지 ──
+  const statBadges = Object.entries(realStats)
+    .filter(([,n]) => n > 0)
+    .map(([k,n]) => {
+      const icon = Object.entries(lmap).find(([,v])=>v===k)?.[0] || '?';
+      const vcls = VERDICT[icon]?.cls || 'vb-unk';
+      return `<span class="vb ${vcls}" style="margin-right:4px">${icon} ${k} ${n}</span>`;
+    }).join('');
+
+  // ── AC 테이블 ──
+  const acRows = items.map(ac => `
+    <tr>
+      <td class="ac-id">${ac.id||''}</td>
+      <td>${ac.content||''}</td>
+      <td>${vbadge(ac.verdict||'⚠️')}</td>
+      <td style="color:var(--text-muted)">${ac.ambiguity||'—'}</td>
+      <td style="color:var(--text-muted);font-style:italic">${ac.missing_info||ac.question||'—'}</td>
+    </tr>`).join('');
+
+  // ── 개발팀 권고사항 (impl_order) ──
+  let devSection = '';
+  if (order.length || risks.length) {
+    const orderItems = order.map((o, i) => `
+      <li>
+        <span class="rec-num">${i+1}</span>
+        <span>${o}</span>
+      </li>`).join('');
+
+    const riskItems = risks.filter(r => r.complexity === 'High').map(r => `
+      <div class="rec-risk-row">
+        <span class="cx-high" style="flex-shrink:0;white-space:nowrap">🔴 High</span>
+        <div style="flex:1;min-width:0">
+          <span style="font-weight:600">${r.feature}</span>
+          <span style="color:var(--text-muted)"> — ${r.risk}</span>
+        </div>
+      </div>`).join('');
+
+    devSection = `
+      <div class="right-section" style="margin-top:20px">
+        <div class="right-section-title">🛠 개발팀 권고사항</div>
+        ${order.length ? `<ol class="rec-list">${orderItems}</ol>` : ''}
+        ${riskItems ? `<div class="rec-risks" style="margin-top:10px">${riskItems}</div>` : ''}
+      </div>`;
+  }
+
+  return `
+    <div class="right-section-title" style="margin-bottom:6px">
+      기획서 품질 판정 <span style="color:var(--text-muted);font-weight:400">(${total}건)</span>
+    </div>
+    <div style="margin-bottom:10px">${statBadges}</div>
+    <table class="ac-table">
+      <thead><tr>
+        <th style="width:56px">AC#</th>
+        <th>내용</th>
+        <th style="width:86px">판정</th>
+        <th style="width:26%">모호한 점</th>
+        <th style="width:22%">확인 필요 사항</th>
+      </tr></thead>
+      <tbody>${acRows}</tbody>
+    </table>
+    ${renderQaPredictions()}
+    ${devSection}
+    ${renderCriticalQuestions()}`;
+}
+
+function ctClass(type, isRisky) {
+  const t = (type||'').trim();
+  if (isRisky)           return 'ct-risky ct-cmod';
+  if (t === '신규')      return 'ct-new';
+  if (t === '수정')      return 'ct-mod';
+  if (t === '공용 수정') return 'ct-cmod';
+  if (t === '완료')      return 'ct-done';
+  if (t === '삭제')      return 'ct-del';
+  return 'ct-mod';
+}
+function cxClass(c) {
+  const v = (c||'').toLowerCase();
+  if (v === 'high') return 'cx-high';
+  if (v === 'med')  return 'cx-med';
+  return 'cx-low';
+}
+function cxIcon(c) {
+  const v = (c||'').toLowerCase();
+  if (v === 'high') return '🔴';
+  if (v === 'med')  return '🟠';
+  return '🟢';
+}
+
+function renderDevPanel() {
+  const dev = D.developer || {};
+  const impact   = dev.impact_scope  || D.impact_scope  || [];
+  const implRisk = dev.impl_risks    || D.impl_risks     || [];
+  const order    = dev.impl_order    || D.impl_order     || [];
+  const notes    = dev.tech_notes    || D.tech_notes     || [];
+  const title    = D.title || '';
+
+  let html = `<h2 style="font-size:18px;font-weight:700;margin-bottom:22px">개발 리스크 분석: ${title}</h2>`;
+
+  // 영향 범위 분석
+  if (impact.length) {
+    const rows = impact.map(i => `
+      <tr>
+        <td>${i.module||''}</td>
+        <td class="${ctClass(i.change_type, i.is_risky)}">${i.is_risky?'⚠️ ':''}${i.change_type||''}</td>
+        <td style="color:var(--text-muted)">${i.detail||''}</td>
+      </tr>`).join('');
+    html += `
+      <div class="dev-section">
+        <div class="dev-section-title">영향 범위 분석</div>
+        <table class="impact-table">
+          <thead><tr><th style="width:220px">모듈/영역</th><th style="width:120px">변경 유형</th><th>상세</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // 구현 리스크 테이블
+  if (implRisk.length) {
+    const rows = implRisk.map(r => `
+      <tr>
+        <td>${r.feature||''}</td>
+        <td class="${cxClass(r.complexity)}">${cxIcon(r.complexity)} ${r.complexity||''}</td>
+        <td style="color:var(--text-muted)">${r.risk||''}</td>
+      </tr>`).join('');
+    html += `
+      <div class="dev-section">
+        <div class="dev-section-title">구현 리스크 테이블</div>
+        <table class="impl-table">
+          <thead><tr><th>기능</th><th style="width:100px">복잡도</th><th>리스크</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // 구현 순서 권고
+  if (order.length) {
+    html += `
+      <div class="dev-section">
+        <div class="dev-section-title">구현 순서 권고</div>
+        <ol class="impl-order">${order.map(o=>`<li>${typeof o==='object'?(o.content||o.step||o.description||JSON.stringify(o)):o}</li>`).join('')}</ol>
+      </div>`;
+  }
+
+  // 기술 리스크 & 주의사항
+  if (notes.length) {
+    html += `
+      <div class="dev-section">
+        <div class="dev-section-title">기술 리스크 &amp; 주의사항</div>
+        <ul class="tech-notes">${notes.map(n=>`<li>${typeof n==='object'?(n.content||n.note||n.description||JSON.stringify(n)):n}</li>`).join('')}</ul>
+      </div>`;
+  }
+
+  if (!impact.length && !implRisk.length && !order.length && !notes.length) {
+    html += `<div style="color:var(--text-muted);font-size:13px">개발 리스크 항목이 없습니다.</div>`;
+  }
+
+  return html;
+}
+
+function render() {
+  document.getElementById('app').innerHTML = `
+    ${renderHeader()}
+    ${renderStats()}
+    ${renderTabs()}
+    <div class="content">
+      <div class="tab-panel active" id="tab-spec">
+        <div class="left-panel">${renderSpecLeft()}</div>
+        <div class="right-panel">${renderRightPanel()}</div>
+      </div>
+      <div class="tab-panel" id="tab-dev" style="overflow-y:auto;padding:24px;flex-direction:column">
+        ${renderDevPanel()}
+      </div>
+      <div class="tab-panel" id="tab-meeting" style="overflow-y:auto;padding:24px;flex-direction:column">
+        ${renderMeeting()}
+      </div>
+    </div>`;
+}
+
+function boldify(text) {
+  return (text||'').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+}
+
+const AGENT_COLOR = {
+  planner:   'var(--accent)',
+  developer: 'var(--orange)',
+  qa:        'var(--green)',
+  ta:        'var(--blue)',
+};
+
+function renderMeeting() {
+  const m = D.meeting;
+  if (!m || (!m.rounds && !m.consensus)) {
+    return `<div class="empty-panel">회의록이 없습니다.</div>`;
+  }
+
+  let html = `
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">
+      회의록: ${D.ticket_key} ${D.title} 분석
+    </h2>
+    <div class="meeting-meta">
+      일시: ${m.date||D.analysis_date} | 참가자: ${(m.participants||[]).join(', ')}
+    </div>
+    <div class="meeting-sys">[SYS] 회의 시작</div>
+  `;
+
+  let lastRound = 0;
+  for (const r of (m.rounds||[])) {
+    if (r.round > lastRound && lastRound > 0) {
+      html += `<div class="meeting-sys">[SYS] Round ${r.round} 시작</div>`;
+    }
+    lastRound = r.round;
+    const color = AGENT_COLOR[r.agent_type] || 'var(--accent)';
+    html += `
+      <div class="meeting-block">
+        <div class="meeting-agent" style="color:${color}">Round ${r.round} — ${r.agent}</div>
+        <div class="meeting-content">${boldify(r.content)}</div>
+      </div>`;
+  }
+
+  if ((m.consensus||[]).length) {
+    html += `<div class="meeting-sys">[SYS] 합의 도출</div>
+    <ul class="consensus-list">
+      ${m.consensus.map(c => {
+        const p = (c.priority||'P1');
+        const cls = p === 'P0' ? 'cp0' : p === 'P1' ? 'cp1' : 'cp2';
+        return `<li><span class="cprio ${cls}">${p}</span><span>${boldify(c.action)}</span></li>`;
+      }).join('')}
+    </ul>`;
+  }
+
+  return html;
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  const panel = document.getElementById('tab-' + name);
+  if (panel) { panel.classList.add('active'); panel.style.display = 'flex'; }
+}
+
+render();
+</script>
+</body>
+</html>
