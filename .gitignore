@@ -1,0 +1,21 @@
+# 로컬 인덱스
+.syntaxos/
+
+# 인증 정보 (절대 커밋 금지)
+config/jira.json
+config/google_client.json
+config/google_token.json
+~/.bagelcode/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# 임시 결과물
+/tmp/vdt-*/
