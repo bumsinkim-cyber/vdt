@@ -95,10 +95,7 @@ EOF
 chmod 600 ~/.bagelcode/jira.json
 ```
 
-**Jira API 토큰 발급:**
-1. https://id.atlassian.com/manage-profile/security/api-tokens 접속
-2. **Create API token** 클릭
-3. 이름 입력 후 토큰 복사
+**Jira API 토큰 발급:** → [상세 가이드](docs/jira-token-guide.md)
 
 ### 3. GitHub CLI 인증
 
