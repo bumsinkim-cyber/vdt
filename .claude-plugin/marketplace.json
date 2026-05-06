@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "vdt",
+  "description": "Bagelcode QA 스킬 마켓플레이스 — Jira 티켓 분석, 빌드 QA, 릴리스 체크리스트, 기획서 감사, VDT 팀 시뮬레이션",
+  "owner": {
+    "name": "bumsinkim-cyber"
+  },
+  "plugins": [
+    {
+      "name": "vdt-qa",
+      "description": "Bagelcode QA 스킬 패키지. /ticket-qa, /build-check, /build-diff, /release-diff, /spec-audit, /spec-review, /ontology-map, /qa-notionize, /vdt, /vdt-setup 포함",
+      "author": {
+        "name": "bumsinkim-cyber"
+      },
+      "source": "./plugins/vdt-qa",
+      "category": "productivity"
+    }
+  ]
+}
