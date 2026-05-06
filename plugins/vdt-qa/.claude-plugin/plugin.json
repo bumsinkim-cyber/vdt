@@ -1,0 +1,8 @@
+{
+  "name": "vdt-qa",
+  "version": "1.0.0",
+  "description": "Bagelcode QA 스킬 패키지. Jira 티켓 분석, 빌드 QA, 릴리스 체크리스트, 기획서 감사, Notion 저장, VDT 팀 시뮬레이션까지 — QA 워크플로우 전체를 Claude Code에서 실행합니다. 수동 호출: /ticket-qa, /build-check, /build-diff, /release-diff, /spec-audit, /spec-review, /ontology-map, /qa-notionize, /vdt, /vdt-setup",
+  "author": {
+    "name": "bumsinkim-cyber"
+  }
+}
