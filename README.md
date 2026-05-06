@@ -1,186 +1,198 @@
-# VDT — 가상 개발팀 기획서 품질 분석
+# Bagelcode QA Skills
 
-Jira 티켓 번호 하나만 입력하면 5개 AI 에이전트(기획/개발/아트/TA/QA)가 기획서를 분석해 HTML 보고서를 생성하고 Slack으로 전송합니다.
-
-**사용 방법은 두 가지입니다:**
-
-| | Slack 봇 | Claude Code 스킬 |
-|---|---|---|
-| **팀원 설치** | ❌ 불필요 | 6단계 설치 필요 |
-| **사용법** | Slack에서 `/vdt CVS-XXXXX` | Claude Code에서 `vdt CVS-XXXXX` |
-| **배포 주체** | 운영자 1회 서버 배포 | 팀원 개인 설치 |
-| **권장 대상** | **팀 전체 사용 (권장)** | 개인 커스텀 필요 시 |
-
-## 무엇을 해주나요?
-
-`vdt CVS-13195` 한 줄 입력 시:
-
-1. **Jira** 에서 티켓 정보 + 첨부 문서 자동 수집
-2. **Confluence / Google Drive** 에서 기획서 텍스트 추출
-3. **5개 에이전트** 병렬 분석
-   - 🗂 Planner — AC 항목 추출
-   - 💻 Developer — 구현 리스크 분석
-   - 🎨 Artist — 에셋/UI 분석
-   - ⚙️ TA — 기술 스펙 및 파이프라인 영향
-   - 🔍 QA Pre-analyst — 기획서 착수 가능성 판정 + 테스트 예측
-4. **팀 회의 시뮬레이션** — 5개 에이전트 합의 도출
-5. **HTML 보고서** → GitHub Pages 배포
-6. **Slack** `#qa-ai-report` 채널에 결과 전송
+Bagelcode QA팀의 Claude Code 스킬 모음입니다.
+Jira 티켓 분석, 빌드 체크, 릴리스 QA, 기획서 감사 등을 자동화합니다.
 
 ---
 
-## 방법 1: Slack 봇 배포 (팀 전체, 설치 0단계)
+## 사전 요구사항
 
-### 운영자 1회 설정
-
-**Step 1. Slack App 생성**
-
-1. https://api.slack.com/apps → **Create New App** → From scratch
-2. 앱 이름: `VDT Bot`, 워크스페이스: Bagelcode
-3. **OAuth & Permissions** → Bot Token Scopes: `chat:write`, `commands` 추가 → **Install to Workspace**
-4. `Bot User OAuth Token` (xoxb-...) 복사
-5. **Basic Information** → `Signing Secret` 복사
-6. **Slash Commands** → `/vdt` 추가, Request URL: `https://your-server.com/slack/events`
-
-**Step 2. Google 토큰 준비**
-
-```bash
-# 로컬에서 OAuth 인증 후 base64로 인코딩
-python3 skills/vdt/vdt-auth.py
-base64 -i ~/.bagelcode/google_token.json | tr -d '\n'
-# 출력된 긴 문자열을 GOOGLE_TOKEN_JSON 환경변수로 사용
-```
-
-**Step 3. 서버 배포**
-
-```bash
-git clone https://github.com/bumsinkim-cyber/vdt.git
-cd vdt
-
-# 환경변수 설정
-cp .env.example .env
-# .env 파일을 열어 각 값 입력
-
-# 도커로 실행 (1줄)
-docker compose up -d
-```
-
-**Step 4. Slack App Request URL 연결**
-
-서버 주소를 Slash Command Request URL에 입력: `https://your-server.com/slack/events`
-
-### 팀원 사용법 (설치 없음)
-
-```
-/vdt CVS-13195
-```
-
-Slack 채널에서 입력하면 끝. 약 3~5분 후 `#qa-ai-report`에 결과가 옵니다.
+| 도구 | 용도 | 필수 여부 |
+|------|------|---------|
+| [Claude Code CLI](https://claude.ai/code) | 스킬 실행 주체 | **필수** |
+| [GitHub CLI (gh)](https://cli.github.com) | PR 조회 | 필수 (대부분 스킬) |
+| repob (bagel-marketplace) | 사내 코드 탐색 | 필수 (코드 분석 스킬) |
+| Jira API 토큰 | Jira 데이터 조회 | **필수** |
+| Notion 통합 토큰 | QA 자산 저장 | qa-notionize만 |
+| [gws CLI](https://www.npmjs.com/package/@googleworkspace/cli) | Google Drive 기획서 읽기 | spec-review/spec-watch만 |
 
 ---
 
-## 방법 2: Claude Code 스킬 (개인 설치)
+## 설치 방법
 
-### 사전 요구사항
-
-- macOS (Apple Silicon / Intel 무관)
-- Python 3.10 이상
-- Claude Code CLI 설치됨
-- Slack MCP, Atlassian MCP 연결됨 (Claude Code 설정에서 확인)
-
-### 설치 방법
+### Mac / Linux
 
 ```bash
-# 1. 레포 클론
-git clone https://github.com/bumsinkim-cyber/vdt.git ~/bagelcode/vdt
-cd ~/bagelcode/vdt
+git clone https://github.com/bagelcode/qa-skills.git
+cd qa-skills
+chmod +x setup.sh
+./setup.sh
+```
 
-# 2. 설치 스크립트 실행
+### Windows (Git Bash)
+
+```bash
+git clone https://github.com/bagelcode/qa-skills.git
+cd qa-skills
 bash setup.sh
 ```
 
-`setup.sh`가 자동으로 처리합니다:
-- Python 패키지 설치 (`google-api-python-client`, `python-pptx` 등)
-- `~/.bagelcode/jira.json` 생성 및 입력 안내
-- `~/.bagelcode/google_client.json` 설정 안내
-- Google OAuth 인증 (`~/.bagelcode/google_token.json` 생성)
-- Claude Code 스킬 심볼릭 링크 등록 (`~/.claude/skills/vdt`)
+또는 PowerShell:
 
-### 인증 정보 설정
-
-#### Jira API 토큰
-1. https://id.atlassian.com/manage-profile/security/api-tokens 접속
-2. **Create API token** 클릭
-3. `~/.bagelcode/jira.json` 에 입력:
-```json
-{
-  "domain": "bagelcode.atlassian.net",
-  "email": "your.name@bagelcode.com",
-  "token": "발급한 토큰"
-}
+```powershell
+.\setup.ps1
 ```
 
-#### Google API 클라이언트
-`google_client.json` 파일은 bumsin.kim@bagelcode.com 에게 요청하세요.  
-받은 파일을 `~/.bagelcode/google_client.json` 에 저장하면 됩니다.
+> ⚠️ Windows에서는 Git Bash 환경이 필요합니다. PowerShell 단독으로는 스킬의 bash 명령이 동작하지 않습니다.
 
-### GitHub Pages 보고서 저장소 설정
+---
 
-보고서를 본인 GitHub Pages에 배포하려면 `SKILL.md` 상단의 변수를 수정하세요:
+## 수동 설치 (스크립트 없이)
+
+### 1. 스킬 파일 복사
 
 ```bash
-# skills/vdt/SKILL.md 내 아래 항목 수정
-VDT_REPO_DIR="/tmp/vdt-reports-git"                          # 로컬 git 경로 (변경 불필요)
-PAGES_URL="https://{your-github-id}.github.io/vdt-reports"  # 본인 GitHub Pages URL
+cp -r ./skills/* ~/.claude/skills/
 ```
 
-그 다음 `{your-github-id}/vdt-reports` 이름으로 GitHub 레포를 생성하고  
-`index.html` 을 포함한 초기 커밋을 올려두면 됩니다.
+### 2. Jira 인증 파일 생성
 
-## 사용법
+```bash
+mkdir -p ~/.bagelcode
+cat > ~/.bagelcode/jira.json << 'EOF'
+{
+  "email": "your.email@bagelcode.com",
+  "token": "YOUR_JIRA_API_TOKEN",
+  "domain": "bagelcode.atlassian.net"
+}
+EOF
+chmod 600 ~/.bagelcode/jira.json
+```
+
+**Jira API 토큰 발급:**
+1. https://id.atlassian.com/manage-profile/security/api-tokens 접속
+2. **Create API token** 클릭
+3. 이름 입력 후 토큰 복사
+
+### 3. GitHub CLI 인증
+
+```bash
+# 설치 (Mac)
+brew install gh
+
+# 인증
+gh auth login
+```
+
+### 4. repob 설치
 
 Claude Code를 열고:
-
 ```
-vdt CVS-13195
-```
-
-또는
-
-```
-vdt 실행해줘 CVS-13045
+/install-plugin repob@bagel-marketplace
 ```
 
-## 디렉토리 구조
+### 5. Notion 토큰 (qa-notionize 사용 시)
+
+```bash
+cat > ~/.bagelcode/notion.json << 'EOF'
+{
+  "token": "YOUR_NOTION_INTEGRATION_TOKEN"
+}
+EOF
+chmod 600 ~/.bagelcode/notion.json
+```
+
+**Notion 통합 토큰 발급:**
+1. https://www.notion.so/my-integrations 접속
+2. **New integration** 생성
+3. 토큰 복사
+
+### 6. gws CLI (spec-review / spec-watch 사용 시)
+
+```bash
+npm install -g @googleworkspace/cli
+gws auth login
+```
+
+---
+
+## 스킬 목록
+
+| 스킬 | 사용법 | 설명 | 필요 도구 |
+|------|--------|------|---------|
+| `/build-check` | `/build-check 239.0.3` | 빌드 경량 체크 (신규/리버트) | jira, gh |
+| `/build-diff` | `/build-diff 239.0.0~239.0.3` | 빌드 변경점 QA 분석 | jira, gh, repob |
+| `/ticket-qa` | `/ticket-qa CVS-12345` | 티켓 단일 QA 딥다이브 | jira, gh, repob |
+| `/release-diff` | `/release-diff 241` | 릴리스 QA 체크리스트 | jira, gh, repob |
+| `/spec-audit` | `/spec-audit CVS-12345` | 기획서 감사 (개발 전) | jira, gws |
+| `/spec-review` | `/spec-review CVS-12345` | 기획서 vs 구현 비교 | jira, gws, repob |
+| `/spec-watch` | `/spec-watch` | Google Drive 기획서 변경 감지 | gws |
+| `/ontology-map` | `/ontology-map` | 교차 영향 분석 | 없음 (이전 결과 필요) |
+| `/qa-notionize` | `/qa-notionize` | QA 자산 Notion 저장 | notion |
+
+---
+
+## 사용 예시
 
 ```
-vdt/
-├── server/
-│   ├── main.py        # Slack 봇 서버 (Flask + slack-bolt)
-│   ├── viewer.html    # HTML 보고서 템플릿 (web/viewer.html과 동기화)
-│   ├── requirements.txt
-│   └── Dockerfile
-├── skills/
-│   └── vdt/
-│       ├── SKILL.md       # 스킬 메인 실행 지시 (Claude Code가 읽음)
-│       └── vdt-auth.py    # Google OAuth 초기 인증 스크립트
-├── agents/
-│   ├── planner.md         # 기획 에이전트 프롬프트
-│   ├── developer.md       # 개발 에이전트 프롬프트
-│   ├── artist.md          # 아트 에이전트 프롬프트
-│   ├── ta.md              # TA 에이전트 프롬프트
-│   └── qa-preanalyst.md   # QA 에이전트 프롬프트
-├── web/
-│   └── viewer.html        # HTML 보고서 템플릿
-├── config/
-│   ├── jira.json.template
-│   └── google_client.json.template
-├── docker-compose.yml     # Slack 봇 배포용
-├── .env.example           # 환경변수 템플릿
-├── setup.sh               # Claude Code 스킬 설치 스크립트
-└── README.md
+# Claude Code 실행 후:
+
+/ticket-qa CVS-13421
+→ PR 조회 → 코드 분석 → 테스트 체크리스트 생성
+
+/build-check 239.0.3
+→ 이전 빌드 대비 신규 티켓 및 리버트 목록 출력
+
+/release-diff 241
+→ 릴리스 241의 전체 QA 영향 분석 + 체크리스트
 ```
+
+---
+
+## 트러블슈팅
+
+### `~/.bagelcode/jira.json 파일이 없습니다`
+
+Jira 인증 파일이 없습니다. [수동 설치 2번](#2-jira-인증-파일-생성)을 참고하세요.
+
+### `command not found: repob`
+
+repob가 설치되지 않았습니다. Claude Code에서 `/install-plugin repob@bagel-marketplace`를 실행하세요.
+
+### `gh: command not found`
+
+GitHub CLI가 없습니다. `brew install gh` 후 `gh auth login`을 실행하세요.
+
+### `gws CLI 미발견`
+
+spec-review / spec-watch 전용 도구입니다. 해당 스킬을 사용하지 않는다면 무시해도 됩니다.
+사용한다면: `npm install -g @googleworkspace/cli` 후 `gws auth login`
+
+### Jira 401 Unauthorized
+
+- `~/.bagelcode/jira.json`의 email / token 값을 확인하세요.
+- 토큰이 만료됐다면 재발급 후 파일을 업데이트하세요.
+
+### Windows에서 Python 인코딩 에러
+
+스킬 실행 시 `UnicodeEncodeError`가 나오면 Git Bash 환경인지 확인하세요.
+PowerShell 단독 실행은 지원하지 않습니다.
+
+---
+
+## 업데이트
+
+스킬 파일이 업데이트됐을 때:
+
+```bash
+git pull
+./setup.sh
+```
+
+setup.sh는 기존 credential 파일을 덮어쓰지 않으므로 안전하게 재실행 가능합니다.
+
+---
 
 ## 문의
 
-bumsin.kim@bagelcode.com
+QA팀 Slack 채널: `#qa-ai-report`

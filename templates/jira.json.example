@@ -1,0 +1,5 @@
+{
+  "email": "your.email@bagelcode.com",
+  "token": "YOUR_JIRA_API_TOKEN",
+  "domain": "bagelcode.atlassian.net"
+}
