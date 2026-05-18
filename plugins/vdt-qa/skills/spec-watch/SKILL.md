@@ -17,6 +17,23 @@ description: Google Drive 폴더를 감시해 기획서 변경을 감지하고, 
 
 인자 없이 실행하면 **전체 모드**. `--detect-only` 옵션 시 경량 모드.
 
+## 도구 확인
+
+```bash
+if ! command -v gws &>/dev/null; then
+  echo "❌ 이 스킬은 gws CLI가 필요합니다."
+  echo ""
+  echo "   설치:  npm install -g @googleworkspace/cli"
+  echo "   인증:  gws auth login"
+  echo ""
+  echo "   설치 후 다시 시도해 주세요."
+fi
+```
+
+gws가 없으면 위 안내를 출력하고 **중단**한다.
+
+---
+
 ## 실행 전 확인
 
 감시 대상 폴더가 `watch-targets.json`에 없으면 `AskUserQuestion`으로 묻는다.

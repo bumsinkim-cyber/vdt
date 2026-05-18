@@ -16,6 +16,23 @@ description: 기획서 원문 또는 정리본을 입력받아 개발 시작 전
 
 ---
 
+## 도구 확인
+
+```bash
+if ! command -v gws &>/dev/null; then
+  echo "❌ 이 스킬은 gws CLI가 필요합니다."
+  echo ""
+  echo "   설치:  npm install -g @googleworkspace/cli"
+  echo "   인증:  gws auth login"
+  echo ""
+  echo "   설치 후 다시 시도해 주세요."
+fi
+```
+
+gws가 없으면 위 안내를 출력하고 **중단**한다.
+
+---
+
 ## 실행 전 확인
 
 인자가 없으면 `AskUserQuestion`으로 한 번 묻는다.

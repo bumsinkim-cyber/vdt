@@ -114,55 +114,10 @@ else
   fi
 fi
 
-# ── 7. repob (bagel-marketplace 플러그인) ──
-info "\n── 7. repob 확인"
-REPOB_CACHE="$HOME/.claude/plugins/cache/bagel-marketplace/repob"
-if [ -d "$REPOB_CACHE" ]; then
-  REPOB_VER=$(ls "$REPOB_CACHE" | sort -V | tail -1)
-  ok "repob $REPOB_VER 설치됨"
-else
-  warn "repob가 없습니다. build-diff / ticket-qa / release-diff / spec-review 스킬에 필요합니다."
-  echo ""
-  echo "   Claude Code에서 아래 명령을 실행하세요:"
-  echo ""
-  echo "     /install-plugin repob@bagel-marketplace"
-  echo ""
-fi
-
-# ── 8. Notion (선택) ───────────────────────
-info "\n── 8. Notion 설정 (qa-notionize 스킬 전용 — 선택사항)"
-NOTION_FILE="$BAGELCODE_DIR/notion.json"
-if [ -f "$NOTION_FILE" ]; then
-  ok "~/.bagelcode/notion.json 이미 존재"
-else
-  read -p "  qa-notionize 스킬을 사용할 예정인가요? (y/N): " SETUP_NOTION
-  if [[ "$SETUP_NOTION" =~ ^[Yy]$ ]]; then
-    echo "  Notion 토큰 발급: https://www.notion.so/my-integrations"
-    read -sp "  Notion 통합 토큰: " NOTION_TOKEN
-    echo ""
-    printf '{\n  "token": "%s"\n}\n' "$NOTION_TOKEN" > "$NOTION_FILE"
-    chmod 600 "$NOTION_FILE"
-    ok "~/.bagelcode/notion.json 생성 완료"
-  fi
-fi
-
-# ── 9. gws (선택) ──────────────────────────
-info "\n── 9. Google Workspace CLI (spec-review / spec-watch 전용 — 선택사항)"
-if command -v gws &>/dev/null; then
-  ok "gws CLI 설치됨"
-else
-  read -p "  spec-review 또는 spec-watch 스킬을 사용할 예정인가요? (y/N): " SETUP_GWS
-  if [[ "$SETUP_GWS" =~ ^[Yy]$ ]]; then
-    warn "gws CLI가 없습니다."
-    echo "   설치: npm install -g @googleworkspace/cli"
-    echo "   설치 후: gws auth login"
-  fi
-fi
-
 # ── 완료 ───────────────────────────────────
 echo ""
 echo "========================================"
-ok "설치 완료!"
+ok "설치 완료! 지금 바로 시작하세요."
 echo "========================================"
 echo ""
 echo "Claude Code에서 바로 사용하세요:"
@@ -177,6 +132,8 @@ echo "  /ontology-map             — 교차 영향 분석"
 echo "  /qa-notionize             — QA 자산 Notion 저장"
 echo "  /vdt          CVS-12345   — VDT 전체 분석"
 echo ""
-echo "문제가 있으면 README.md의 트러블슈팅 섹션을 확인하세요."
+echo "  💡 일부 스킬은 추가 도구가 필요합니다."
+echo "     필요할 때 스킬이 직접 설치 방법을 안내합니다."
+echo ""
 echo "리포: https://github.com/bumsinkim-cyber/vdt"
 echo ""

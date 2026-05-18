@@ -199,6 +199,25 @@ import sys; sys.stdout.reconfigure(encoding='utf-8', errors='replace'); sys.stde
 
 파일을 `open()`할 때도 `encoding='utf-8', errors='replace'`를 항상 지정한다. 이 규칙은 이후 모든 STEP의 Python 코드에 적용된다. 개별 코드 블록에서 반복 기술하지 않는다.
 
+## 도구 확인
+
+```bash
+PLUGIN_BASE="${HOME}/.claude/plugins/cache/bagel-marketplace/repob"
+LATEST=$(ls "$PLUGIN_BASE" 2>/dev/null | sort -V | tail -1)
+if [ -z "$LATEST" ] && ! command -v repob &>/dev/null; then
+  echo "❌ 이 스킬은 repob가 필요합니다."
+  echo ""
+  echo "   Claude Code에서 실행:"
+  echo "     /install-plugin repob@bagel-marketplace"
+  echo ""
+  echo "   설치 후 다시 시도해 주세요."
+fi
+```
+
+repob가 없으면 위 안내를 출력하고 **중단**한다.
+
+---
+
 ## 실행 전 확인
 
 인자가 없으면 `AskUserQuestion`으로 한 번 묻는다.
