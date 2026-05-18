@@ -759,51 +759,27 @@ print(f'에셋: {len(artist.get(\"assets\", {}).get(\"images\", []))}건  |  TA 
 
 ---
 
-## STEP 6.5: GitHub Pages 배포
+## STEP 6.5: BagelPages 배포
 
-HTML 보고서를 GitHub Pages 리포지토리에 푸시하여 공개 링크를 생성한다.
+HTML 보고서를 BagelPages에 배포하여 사내망 전용 링크를 생성한다.
 
 ```bash
-VDT_REPO_DIR="/tmp/vdt-reports-git"
-PAGES_URL="https://bumsinkim-cyber.github.io/vdt-reports"
-REPORT_FILENAME="${TICKET_KEY}.html"
+APP_NAME="vdt-$(echo ${TICKET_KEY} | tr '[:upper:]' '[:lower:]')"
+DEPLOY_DIR=$(mktemp -d)
 
-# 로컬 리포지토리가 없으면 clone
-if [ ! -d "$VDT_REPO_DIR/.git" ]; then
-  git clone https://github.com/bumsinkim-cyber/vdt-reports.git "$VDT_REPO_DIR"
-fi
+# 보고서를 index.html로 복사 (BagelPages는 루트 index.html을 진입점으로 사용)
+cp "$OUTPUT_PATH" "$DEPLOY_DIR/index.html"
 
-# 최신 상태 동기화
-cd "$VDT_REPO_DIR" && git pull origin main
+# BagelPages 배포
+codeb pages deploy "$DEPLOY_DIR" --app "$APP_NAME"
 
-# 보고서 파일 복사
-cp "$OUTPUT_PATH" "$VDT_REPO_DIR/$REPORT_FILENAME"
-
-# index.html 업데이트 (맨 위에 신규 항목 추가)
-$PYTHON -c "
-import re, json, os
-from datetime import datetime
-idx = open('$VDT_REPO_DIR/index.html', encoding='utf-8').read()
-planner = json.load(open('$TMPDIR/planner.json', encoding='utf-8'))
-title = planner.get('title', '$TICKET_KEY')
-date  = datetime.now().strftime('%Y-%m-%d')
-new_item = f'  <li><a href=\"${REPORT_FILENAME}\">${TICKET_KEY} — {title}</a><div class=\"meta\">{date}</div></li>'
-idx = idx.replace('<ul class=\"report-list\" id=\"list\">', '<ul class=\"report-list\" id=\"list\">\n' + new_item)
-open('$VDT_REPO_DIR/index.html', 'w', encoding='utf-8').write(idx)
-print('index.html 업데이트 완료')
-"
-
-# 커밋 & 푸시
-cd "$VDT_REPO_DIR" && \
-git add "$REPORT_FILENAME" index.html && \
-git commit -m "report: ${TICKET_KEY} 분석 보고서 추가" && \
-git push origin main
-
-REPORT_URL="${PAGES_URL}/${REPORT_FILENAME}"
+REPORT_URL="https://${APP_NAME}.pages.bagelgames.com"
 echo "✅ 보고서 URL: $REPORT_URL"
+
+rm -rf "$DEPLOY_DIR"
 ```
 
-> GitHub Pages 빌드는 푸시 후 약 30~60초 소요된다. 링크는 즉시 Slack에 포함하여 전송한다.
+> BagelPages는 사내망(VPN)에서만 접근 가능하다. 배포 즉시 링크가 활성화된다.
 
 ---
 
@@ -830,7 +806,7 @@ HTML 보고서 URL과 요약을 Slack 채널에 전송한다.
 🛠 *개발 구현 리스크 (High)*
 {complexity=High impl_risks 항목, 없으면 "없음"}
 
-📄 *분석 보고서*: https://bumsinkim-cyber.github.io/vdt-reports/{TICKET_KEY}.html
+📄 *분석 보고서*: https://vdt-{ticket_key_lowercase}.pages.bagelgames.com
 ```
 
 ### 7-2. Slack 채널 전송
@@ -838,7 +814,7 @@ HTML 보고서 URL과 요약을 Slack 채널에 전송한다.
 `mcp__claude_ai_Slack__slack_send_message` 도구를 사용한다.
 
 - `channel_id`: `C0AQTSRRFHC` (`#qa-ai-report` 채널)
-- `message`: 위 7-1에서 구성한 메시지 (GitHub Pages URL 포함)
+- `message`: 위 7-1에서 구성한 메시지 (BagelPages URL 포함)
 
 전송 후 메시지 링크를 출력한다.
 
@@ -848,7 +824,7 @@ HTML 보고서 URL과 요약을 Slack 채널에 전송한다.
 
 ```
 ✅ /vdt {TICKET_KEY} 분석 완료
-- 보고서 URL: https://bumsinkim-cyber.github.io/vdt-reports/{TICKET_KEY}.html
+- 보고서 URL: https://vdt-{ticket_key_lowercase}.pages.bagelgames.com
 - Slack: #qa-ai-report 전송 완료
 - 기획서 품질: ✅착수가능:{N} ⚠️확인필요:{N} 🔴착수불가:{N}
 ```

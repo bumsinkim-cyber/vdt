@@ -27,12 +27,8 @@ JIRA_DOMAIN_V = _env_or_file("JIRA_DOMAIN",          "jira.json",      "domain")
 JIRA_EMAIL_V  = _env_or_file("JIRA_EMAIL",            "jira.json",      "email")
 JIRA_TOKEN_V  = _env_or_file("JIRA_TOKEN",            "jira.json",      "token")
 AIPROXY_TOKEN = _env_or_file("ANTHROPIC_API_KEY",     "anthropic.json", "api_key")
-GITHUB_TOKEN_V = os.environ.get("GITHUB_TOKEN", "")
 VIEWER_PATH   = os.environ.get("VIEWER_PATH", "/app/viewer.html")
 CHANNEL       = os.environ.get("REPORT_CHANNEL", "C0AQTSRRFHC")
-PAGES_BASE    = os.environ.get("PAGES_BASE_URL", "https://bumsinkim-cyber.github.io/vdt-reports")
-PAGES_REPO    = os.environ.get("PAGES_REPO", "bumsinkim-cyber/vdt-reports")
-REPO_DIR      = "/tmp/vdt-reports-git"
 
 JIRA_BASE = f"https://{JIRA_DOMAIN_V}"
 JIRA_AUTH = (JIRA_EMAIL_V, JIRA_TOKEN_V)
@@ -141,7 +137,7 @@ def _run_pipeline(ticket_key: str, tmpdir: Path):
     report_path = tmpdir / "report.html"
     _generate_html(ticket_key, tmpdir, report_path)
 
-    # STEP 6.5: GitHub Pages 배포
+    # STEP 6.5: BagelPages 배포
     report_url = _deploy_to_pages(ticket_key, report_path, json.loads(planner_json))
 
     # STEP 7: Slack 전송
@@ -468,43 +464,20 @@ def _generate_html(ticket_key: str, tmpdir: Path, output: Path):
     output.write_text(html, encoding="utf-8")
 
 
-# ── GitHub Pages 배포 ──
+# ── BagelPages 배포 ──
 def _deploy_to_pages(ticket_key: str, report_path: Path, planner: dict) -> str:
-    import shutil
-    repo_dir = Path(REPO_DIR)
-    gh_token = GITHUB_TOKEN_V
-    repo_url = (
-        f"https://{gh_token}@github.com/{PAGES_REPO}.git"
-        if gh_token else f"https://github.com/{PAGES_REPO}.git"
-    )
-
-    if not (repo_dir / ".git").exists():
-        subprocess.run(["git", "clone", repo_url, str(repo_dir)], check=True)
-    else:
-        if gh_token:
-            subprocess.run(["git", "-C", str(repo_dir), "remote", "set-url", "origin", repo_url], check=True)
-        subprocess.run(["git", "-C", str(repo_dir), "pull", "origin", "main"], check=True)
-
-    subprocess.run(["git", "-C", str(repo_dir), "config", "user.email", "vdt-bot@bagelcode.com"], check=True)
-    subprocess.run(["git", "-C", str(repo_dir), "config", "user.name", "VDT Bot"], check=True)
-
-    filename = f"{ticket_key}.html"
-    shutil.copy(report_path, repo_dir / filename)
-
-    idx_path = repo_dir / "index.html"
-    idx  = idx_path.read_text(encoding="utf-8")
-    date = datetime.date.today().strftime("%Y-%m-%d")
-    title = planner.get("title", ticket_key)
-    new_item = f'  <li><a href="{filename}">{ticket_key} — {title}</a><div class="meta">{date}</div></li>'
-    if filename not in idx:
-        idx = idx.replace('<ul class="report-list" id="list">', f'<ul class="report-list" id="list">\n{new_item}')
-        idx_path.write_text(idx, encoding="utf-8")
-
-    subprocess.run(["git", "-C", str(repo_dir), "add", filename, "index.html"], check=True)
-    subprocess.run(["git", "-C", str(repo_dir), "commit", "-m", f"report: {ticket_key} 분석 보고서 추가"], check=True)
-    subprocess.run(["git", "-C", str(repo_dir), "push", "origin", "main"], check=True)
-
-    return f"{PAGES_BASE}/{filename}"
+    import shutil, tempfile
+    app_name   = f"vdt-{ticket_key.lower()}"
+    deploy_dir = Path(tempfile.mkdtemp(prefix=f"bagelpages-{ticket_key}-"))
+    try:
+        shutil.copy(report_path, deploy_dir / "index.html")
+        subprocess.run(
+            ["codeb", "pages", "deploy", str(deploy_dir), "--app", app_name],
+            check=True,
+        )
+    finally:
+        shutil.rmtree(deploy_dir, ignore_errors=True)
+    return f"https://{app_name}.pages.bagelgames.com"
 
 
 # ── Slack 결과 전송 ──
