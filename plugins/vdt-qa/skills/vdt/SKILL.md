@@ -770,11 +770,40 @@ print(f'에셋: {len(artist.get(\"assets\", {}).get(\"images\", []))}건  |  TA 
 HTML 보고서를 BagelPages에 배포하여 사내망 전용 링크를 생성한다.
 
 ```bash
+# ── 환경변수 재구성 (Bash 블록 간 셸 상태가 유지되지 않으므로 필수) ──
+TICKET_KEY={입력받은 티켓 키}
+export TMPDIR="$(cygpath -m /tmp 2>/dev/null || echo /tmp)/vdt-${TICKET_KEY}"
+OUTPUT_PATH="$TMPDIR/report.html"
+
+# codeb 존재 확인
+if ! command -v codeb &>/dev/null; then
+  echo "❌ codeb CLI가 없습니다. BagelPages 배포를 건너뜁니다."
+  echo "   설치: https://pages.bagelgames.com/docs/cli"
+  REPORT_URL="[배포 실패 — codeb 미설치]"
+  exit 0
+fi
+
+# report.html 존재 및 내용 확인
+if [ ! -s "$OUTPUT_PATH" ]; then
+  echo "❌ 보고서 파일이 없거나 비어 있습니다: $OUTPUT_PATH"
+  echo "   STEP 6이 정상 완료되었는지 확인하세요."
+  exit 1
+fi
+
 APP_NAME="vdt-$(echo ${TICKET_KEY} | tr '[:upper:]' '[:lower:]')"
 DEPLOY_DIR=$(mktemp -d)
 
 # 보고서를 index.html로 복사 (BagelPages는 루트 index.html을 진입점으로 사용)
 cp "$OUTPUT_PATH" "$DEPLOY_DIR/index.html"
+
+# 복사 결과 확인
+if [ ! -s "$DEPLOY_DIR/index.html" ]; then
+  echo "❌ index.html 복사 실패"
+  rm -rf "$DEPLOY_DIR"
+  exit 1
+fi
+
+echo "배포 파일 크기: $(wc -c < "$DEPLOY_DIR/index.html") bytes"
 
 # BagelPages 배포
 codeb pages deploy "$DEPLOY_DIR" --app "$APP_NAME"

@@ -140,8 +140,17 @@ else
   fi
 fi
 
-# ── 7. GitHub CLI ──────────────────────────
-info "\n── 7. GitHub CLI (gh) 확인"
+# ── 7. codeb CLI ──────────────────────────
+info "\n── 7. codeb CLI 확인 (/vdt 보고서 배포용)"
+if ! command -v codeb &>/dev/null; then
+  warn "codeb CLI가 없습니다. /vdt 보고서 BagelPages 배포에 필요합니다."
+  echo "   설치: https://pages.bagelgames.com/docs/cli"
+else
+  ok "codeb CLI: $(codeb version 2>/dev/null | head -1)"
+fi
+
+# ── 8. GitHub CLI ──────────────────────────
+info "\n── 8. GitHub CLI (gh) 확인"
 if ! command -v gh &>/dev/null; then
   warn "gh CLI가 없습니다. build-check / ticket-qa / release-diff 스킬에 필요합니다."
   echo "   설치 (Mac): brew install gh"
