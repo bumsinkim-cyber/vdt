@@ -819,7 +819,7 @@ HTML 보고서 URL과 요약을 Slack 채널에 전송한다.
 
 `mcp__claude_ai_Slack__slack_send_message` 도구를 사용한다.
 
-- `channel_id`: `C0AQTSRRFHC` (`#qa-ai-report` 채널)
+- `channel_id`: `G018FN9CT2L` (`#cvs-qp` 채널)
 - `message`: 위 7-1에서 구성한 메시지 (BagelPages URL 포함)
 
 전송 후 메시지 링크를 출력한다.
@@ -831,6 +831,6 @@ HTML 보고서 URL과 요약을 Slack 채널에 전송한다.
 ```
 ✅ /vdt {TICKET_KEY} 분석 완료
 - 보고서 URL: https://vdt-{ticket_key_lowercase}.pages.bagelgames.com
-- Slack: #qa-ai-report 전송 완료
+- Slack: #cvs-qp 전송 완료
 - 기획서 품질: ✅착수가능:{N} ⚠️확인필요:{N} 🔴착수불가:{N}
 ```
