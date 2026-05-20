@@ -1,3 +1,8 @@
+---
+name: vdt-setup
+description: vdt-qa 플러그인 설치 후 Jira·Notion 자격증명과 CLI 도구(gh, repob)를 대화형으로 설정합니다. "/vdt-setup", "vdt 설정", "QA 초기 설정" 요청 시 사용합니다.
+---
+
 # vdt-setup — Bagelcode QA 초기 설정 마법사
 
 ## 목적
